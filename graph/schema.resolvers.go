@@ -4,19 +4,44 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
-	"context"
-	"fmt"
+    "context"
 
-	"github.com/mbk/bookworm/graph/generated"
-	"github.com/mbk/bookworm/graph/model"
+    "github.com/mbk/bookworm/graph/generated"
+    "github.com/mbk/bookworm/graph/model"
+    "github.com/mbk/bookworm/graph/models"
 )
 
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) AddBook(ctx context.Context, input *model.NewBook, author []*model.NewAuthor) (*models.Book, error) {
+    db := models.FetchConnection()
+    defer db.Close()
+
+    //create book using input struct
+    book := models.Book{
+        Name:     input.Name,
+        Category: input.Category,
+    }
+
+    book.Author = make([]*models.Author, len(author))
+
+    for index, item := range author {
+        book.Author[index] = &models.Author{Firstname: item.Firstname, Lastname: item.Lastname}
+    }
+
+    db.Create(&book)
+    return &book, nil
 }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) EditBook(ctx context.Context, id *int, input *model.NewBook, author []*model.NewAuthor) (*models.Book, error) {
+  return nil, nil
+}
+
+func (r *mutationResolver) DeleteBook(ctx context.Context, id *int) ([]*models.Book, error) {
+ return nil, nil
+
+}
+
+func (r *queryResolver) Books(ctx context.Context, search *string) ([]*models.Book, error) {
+  return nil, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -27,3 +52,4 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+

@@ -54,9 +54,8 @@ models:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
-  models:
-    Book:
-      model: github.com/mbk/bookworm/graph/models.Book
-    Author:
-      model: github.com/mbk/bookworm/graph/models.Author
+  Book:
+    model: github.com/mbk/bookworm/graph/models.Book
+  Author:
+    model: github.com/mbk/bookworm/graph/models.Author
 
