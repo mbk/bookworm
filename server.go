@@ -8,7 +8,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/mbk/bookworm/graph"
-        "github.com/mbk/graph/models"
+        "github.com/mbk/bookwork/graph/models"
 	"github.com/mbk/bookworm/graph/generated"
 )
 
