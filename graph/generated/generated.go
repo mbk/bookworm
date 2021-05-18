@@ -59,13 +59,16 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddBook    func(childComplexity int, input *model.NewBook, author []*model.NewAuthor) int
-		DeleteBook func(childComplexity int, id *int) int
-		EditBook   func(childComplexity int, id *int, input *model.NewBook, author []*model.NewAuthor) int
+		AddBook        func(childComplexity int, input *model.NewBook, author []*model.NewAuthor) int
+		DeleteAllBooks func(childComplexity int, alsoAuthours *bool) int
+		DeleteBook     func(childComplexity int, id *int) int
+		EditBook       func(childComplexity int, id *int, input *model.NewBook, author []*model.NewAuthor) int
 	}
 
 	Query struct {
-		Books func(childComplexity int, search *string) int
+		Authors func(childComplexity int, search *string) int
+		Books   func(childComplexity int, search *string) int
+		Exists  func(childComplexity int, input model.NewAuthor) int
 	}
 }
 
@@ -73,9 +76,12 @@ type MutationResolver interface {
 	AddBook(ctx context.Context, input *model.NewBook, author []*model.NewAuthor) (*models.Book, error)
 	EditBook(ctx context.Context, id *int, input *model.NewBook, author []*model.NewAuthor) (*models.Book, error)
 	DeleteBook(ctx context.Context, id *int) ([]*models.Book, error)
+	DeleteAllBooks(ctx context.Context, alsoAuthours *bool) (*bool, error)
 }
 type QueryResolver interface {
 	Books(ctx context.Context, search *string) ([]*models.Book, error)
+	Authors(ctx context.Context, search *string) ([]*models.Author, error)
+	Exists(ctx context.Context, input model.NewAuthor) (bool, error)
 }
 
 type executableSchema struct {
@@ -161,6 +167,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddBook(childComplexity, args["input"].(*model.NewBook), args["author"].([]*model.NewAuthor)), true
 
+	case "Mutation.deleteAllBooks":
+		if e.complexity.Mutation.DeleteAllBooks == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteAllBooks_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteAllBooks(childComplexity, args["alsoAuthours"].(*bool)), true
+
 	case "Mutation.deleteBook":
 		if e.complexity.Mutation.DeleteBook == nil {
 			break
@@ -185,6 +203,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.EditBook(childComplexity, args["id"].(*int), args["input"].(*model.NewBook), args["author"].([]*model.NewAuthor)), true
 
+	case "Query.authors":
+		if e.complexity.Query.Authors == nil {
+			break
+		}
+
+		args, err := ec.field_Query_authors_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Authors(childComplexity, args["search"].(*string)), true
+
 	case "Query.books":
 		if e.complexity.Query.Books == nil {
 			break
@@ -196,6 +226,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Books(childComplexity, args["search"].(*string)), true
+
+	case "Query.exists":
+		if e.complexity.Query.Exists == nil {
+			break
+		}
+
+		args, err := ec.field_Query_exists_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Exists(childComplexity, args["input"].(model.NewAuthor)), true
 
 	}
 	return 0, false
@@ -277,6 +319,8 @@ type Author {
 
 type Query {
     books(search: String=""): [Book!]!
+    authors(search: String =""): [Author!]
+    exists(input: newAuthor!): Boolean!
 }
 
 input newBook {
@@ -287,13 +331,14 @@ input newBook {
 input newAuthor {
     firstname: String!
     lastname: String!
-
+    bookID: ID!
 }
 
 type Mutation {
     addBook(input: newBook, author: [newAuthor]): Book!
     editBook(id: Int, input: newBook, author: [newAuthor] = []): Book!
     deleteBook(id: Int): [Book!]!
+    deleteAllBooks(alsoAuthours: Boolean = true): Boolean
 }
 
 `, BuiltIn: false},
@@ -325,6 +370,21 @@ func (ec *executionContext) field_Mutation_addBook_args(ctx context.Context, raw
 		}
 	}
 	args["author"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteAllBooks_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *bool
+	if tmp, ok := rawArgs["alsoAuthours"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("alsoAuthours"))
+		arg0, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["alsoAuthours"] = arg0
 	return args, nil
 }
 
@@ -391,6 +451,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_authors_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["search"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["search"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_books_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -403,6 +478,21 @@ func (ec *executionContext) field_Query_books_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["search"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_exists_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewAuthor
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNnewAuthor2githubᚗcomᚋmbkᚋbookwormᚋgraphᚋmodelᚐNewAuthor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -850,6 +940,45 @@ func (ec *executionContext) _Mutation_deleteBook(ctx context.Context, field grap
 	return ec.marshalNBook2ᚕᚖgithubᚗcomᚋmbkᚋbookwormᚋgraphᚋmodelsᚐBookᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_deleteAllBooks(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteAllBooks_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteAllBooks(rctx, args["alsoAuthours"].(*bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_books(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -890,6 +1019,87 @@ func (ec *executionContext) _Query_books(ctx context.Context, field graphql.Coll
 	res := resTmp.([]*models.Book)
 	fc.Result = res
 	return ec.marshalNBook2ᚕᚖgithubᚗcomᚋmbkᚋbookwormᚋgraphᚋmodelsᚐBookᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_authors(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_authors_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Authors(rctx, args["search"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Author)
+	fc.Result = res
+	return ec.marshalOAuthor2ᚕᚖgithubᚗcomᚋmbkᚋbookwormᚋgraphᚋmodelsᚐAuthorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_exists(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_exists_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Exists(rctx, args["input"].(model.NewAuthor))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2072,6 +2282,14 @@ func (ec *executionContext) unmarshalInputnewAuthor(ctx context.Context, obj int
 			if err != nil {
 				return it, err
 			}
+		case "bookID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bookID"))
+			it.BookID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -2228,6 +2446,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "deleteAllBooks":
+			out.Values[i] = ec._Mutation_deleteAllBooks(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2263,6 +2483,31 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_books(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "authors":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_authors(ctx, field)
+				return res
+			})
+		case "exists":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_exists(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -2656,6 +2901,21 @@ func (ec *executionContext) marshalNID2int(ctx context.Context, sel ast.Selectio
 	return res
 }
 
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2913,6 +3173,51 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNnewAuthor2githubᚗcomᚋmbkᚋbookwormᚋgraphᚋmodelᚐNewAuthor(ctx context.Context, v interface{}) (model.NewAuthor, error) {
+	res, err := ec.unmarshalInputnewAuthor(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAuthor2ᚕᚖgithubᚗcomᚋmbkᚋbookwormᚋgraphᚋmodelsᚐAuthorᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Author) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAuthor2ᚖgithubᚗcomᚋmbkᚋbookwormᚋgraphᚋmodelsᚐAuthor(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

@@ -7,19 +7,20 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/mbk/bookworm/graph"
-        "github.com/mbk/bookworm/graph/models"
 	"github.com/mbk/bookworm/graph/generated"
+	"github.com/mbk/bookworm/graph/models"
 )
 
-const defaultPort = "8080"
+const defaultPort = "9090"
 
 func main() {
 
 	//Migrate Db
-        db := models.FetchConnection()
-        db.AutoMigrate(&models.Book{}, &models.Author{})
-        db.Close()
+	db := models.FetchConnection()
+	db.AutoMigrate(&models.Book{}, &models.Author{})
+	db.Close()
 
 	port := os.Getenv("PORT")
 	if port == "" {

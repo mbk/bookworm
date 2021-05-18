@@ -14,6 +14,8 @@ type Author {
 
 type Query {
     books(search: String=""): [Book!]!
+    authors(search: String =""): [Author!]
+    exists(input: newAuthor!): Boolean!
 }
 
 input newBook {
@@ -24,12 +26,13 @@ input newBook {
 input newAuthor {
     firstname: String!
     lastname: String!
-
+    bookID: ID!
 }
 
 type Mutation {
     addBook(input: newBook, author: [newAuthor]): Book!
     editBook(id: Int, input: newBook, author: [newAuthor] = []): Book!
     deleteBook(id: Int): [Book!]!
+    deleteAllBooks(alsoAuthours: Boolean = true): Boolean
 }
 

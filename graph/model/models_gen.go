@@ -5,6 +5,7 @@ package model
 type NewAuthor struct {
 	Firstname string `json:"firstname"`
 	Lastname  string `json:"lastname"`
+	BookID    string `json:"bookID"`
 }
 
 type NewBook struct {
