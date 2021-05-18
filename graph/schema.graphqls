@@ -2,7 +2,7 @@ type Book {
     id: Int!
     name: String!
     category: String!
-    author: [Author!]!
+    author: [Int!]!
 }
 
 type Author {
@@ -32,7 +32,5 @@ input newAuthor {
 type Mutation {
     addBook(input: newBook, author: [newAuthor]): Book!
     editBook(id: Int, input: newBook, author: [newAuthor] = []): Book!
-    deleteBook(id: Int): [Book!]!
-    deleteAllBooks(alsoAuthours: Boolean = true): Boolean
 }
 

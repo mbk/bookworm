@@ -20,8 +20,8 @@ type Author struct {
 }
 
 type Book struct {
-	ID       int       `json:"id" gorm:"primary_key"`
-	Name     string    `json:"name"`
-	Category string    `json:"category"`
-	Author   []*Author `json:"author" gorm:"polymorphic:Owner;"`
+	ID       int    `json:"id" gorm:"primary_key"`
+	Name     string `json:"name"`
+	Category string `json:"category"`
+	Author   []int  `json:"author" gorm:"polymorphic:Owner;"`
 }
